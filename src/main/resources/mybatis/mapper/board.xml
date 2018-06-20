@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="board">
+	<select id="selectList" resultType="board" parameterType="map">		
+	    select * 
+	    from (select rownum as rnum, a.* from 
+	    	(
+	    		select * from 
+	    			board
+	    			<if test="option != null and option != 'all'">
+	    			where
+	    				<choose>
+	    					<when test="option == 'name'">
+	    						name like '%'||#{text}||'%'		
+	    					</when>
+	    					<when test="option == 'title'">
+	    						title like '%'||#{text}||'%'
+	    					</when>
+	    					<when test="option == 'content'">
+	    						content like '%'||#{text}||'%'
+	    					</when>
+	    					<when test="opton == 'title_name'">
+	    						title like '%'||#{text}||'%' or
+	    						name like '%'||#{text}||'%'
+	    					</when>
+	    				</choose>	    				
+	    			</if>
+	    			order by ref desc, step asc	    		
+	    		) a
+	    	) 
+	    where rnum between #{start} and #{end}
+	</select>
+	
+	<select id="selectOne" parameterType="int" resultMap="boardMap">
+		select * from board
+			where id = #{value}
+	</select>
+	
+	<resultMap type="board" id="boardMap">
+	<!-- column은 resultMap에 해당하는 기본키값 -->
+		<id property="id" column="id"/>
+		<collection select="reply.selectList"
+					column="id" 
+					ofType="reply"		 
+					property="replyList"/>
+	</resultMap>
+	
+	
+	
+	<insert id="insert" parameterType="board">
+		insert into board
+			values (
+				seq_board_id.nextval,
+				#{name},
+				#{title},
+				#{content},
+				#{ip},
+				sysdate,
+				0,
+				seq_board_id.currval,
+				0,
+				0
+			)			
+	</insert>
+	
+	<update id="plusHit" parameterType="int">
+		update board set
+			hit = hit+1
+				where id = #{value}
+	</update>
+	
+	<delete id="delete" parameterType="int">
+		delete from board
+			where id = #{value}
+	</delete>
+	
+	<update id="update" parameterType="board">
+		update board set
+			name=#{name}, title=#{title}, content=#{content}, regdate = sysdate
+			where id = #{id}
+	</update>
+	
+	<select id="totalCount" resultType="int">
+		select count(*) from board
+			<if test="option != null and option != 'all'">
+	    			where
+	    				<choose>
+	    					<when test="option == 'name'">
+	    						name like '%'||#{text}||'%'		
+	    					</when>
+	    					<when test="option == 'title'">
+	    						title like '%'||#{text}||'%'
+	    					</when>
+	    					<when test="option == 'content'">
+	    						content like '%'||#{text}||'%'
+	    					</when>
+	    					<when test="opton == 'title_name'">
+	    						title like '%'||#{text}||'%' or
+	    						name like '%'||#{text}||'%'
+	    					</when>
+	    				</choose>	    				
+	    			</if>
+	</select>
+	
+	<insert id="comment" parameterType="board">
+		insert into board
+			values (
+				seq_board_id.nextval,
+				#{name},
+				#{title},
+				#{content},
+				#{ip},
+				sysdate,
+				0,
+				#{ref},
+				#{step},
+				#{depth}
+			)			
+	</insert>
+	
+	<update id="updateStep" parameterType="board">
+		update board set
+			step = step+1
+				where ref = #{ref} and step >= #{step}
+	</update>
+</mapper>
